@@ -1,6 +1,59 @@
 const state={quantity:1,price:92,name:'6 Magnets Per Link'};
 const money=value=>`$${value}`;
 const all=selector=>[...document.querySelectorAll(selector)];
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function initializeMotion(){
+  const intro=document.querySelector('.page-intro');
+  const revealTargets=all([
+    '.fact-rail > *','.section-heading','.construction-grid > *',
+    '.video-copy > *','.video-shell','.compare-card','.included-image',
+    '.included-copy > *','.clasp-section > img','.clasp-section > div > *',
+    '.review-summary > *','.review-gallery figure','.safety-section > *',
+    '.faq-intro','.faq-list details','.final-cta > *','.site-footer > *'
+  ].join(','));
+
+  if(reducedMotion){
+    document.body.classList.add('intro-complete');
+    intro?.remove();
+    revealTargets.forEach(element=>element.classList.add('is-visible'));
+    return;
+  }
+
+  revealTargets.forEach((element,index)=>{
+    element.classList.add('motion-reveal');
+    element.style.setProperty('--reveal-delay',`${(index%4)*80}ms`);
+  });
+
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  },{threshold:.12,rootMargin:'0px 0px -7%'});
+  revealTargets.forEach(element=>observer.observe(element));
+
+  requestAnimationFrame(()=>document.body.classList.add('motion-ready'));
+  window.setTimeout(()=>{
+    document.body.classList.add('intro-complete');
+    window.setTimeout(()=>intro?.remove(),850);
+  },900);
+
+  const progress=document.querySelector('.scroll-progress span');
+  let ticking=false;
+  const paintProgress=()=>{
+    const distance=document.documentElement.scrollHeight-innerHeight;
+    const value=distance>0?Math.min(1,scrollY/distance):0;
+    progress?.style.setProperty('--scroll-progress',value);
+    ticking=false;
+  };
+  addEventListener('scroll',()=>{
+    if(!ticking){requestAnimationFrame(paintProgress);ticking=true;}
+  },{passive:true});
+  paintProgress();
+}
 
 function updateProductUI(){
   all('.quantity output,.mobile-quantity output').forEach(output=>output.textContent=state.quantity);
@@ -52,3 +105,4 @@ all('.add-button,.mobile-add,.mobile-sticky button').forEach(button=>button.addE
 all('[data-dialog-open]').forEach(button=>button.addEventListener('click',()=>document.getElementById(button.dataset.dialogOpen).showModal()));
 all('[data-dialog-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
 updateProductUI();
+initializeMotion();
